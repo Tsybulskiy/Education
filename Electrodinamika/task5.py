@@ -61,10 +61,19 @@ def calculate_twisted_pair_line(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
     D_initial = d_max / 2 + d_max / 4
     a_initial = d_max / 4
 
-    D, a = fsolve(equations, (D_initial, a_initial))
+    step_reducer = 2
+    max_attempts = 10  
 
-    print(f"D: {D:.6f}, a: {a:.6f}")
-
+    for attempt in range(max_attempts):
+        try:
+            D, a = fsolve(equations, (D_initial, a_initial))
+            print(f"Решение найдено: D = {D:.6f}, a = {a:.6f}")
+            break
+        except (ValueError, RuntimeError) as e:
+            if attempt % 2 == 0:
+                a_initial /= step_reducer
+            else:
+                D_initial = d_max / 2 + d_max / (4 * step_reducer**((attempt + 1)//2))
 
     L_0 = mu_0 / math.pi * (math.log(0.5 * D / a + math.sqrt((0.5 * D / a) ** 2 - 1))+ 1 / 4)
     print(f"Удельная индуктивность L_0: {L_0} Гн/м")
@@ -100,30 +109,45 @@ def calculate_twisted_pair_line(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
     return L_0, C_0, a_obsh, A_e, A_p, U_max, P_max
 
 
-def calculate_symmetrical_stripline(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
 
+def calculate_symmetrical_stripline(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
     b = d_max
     print(f"b: {b}")
-
 
     magic_constant_wow = 0.00165
     multiplier = magic_constant_wow * Z_c * math.sqrt(epsilon)
     w = b * multiplier
     print(f"w: {w} м")
 
-
     epsilon_factor = 200 / math.sqrt(epsilon)
-    h = fsolve(lambda h: epsilon_factor * ((b - 3 * h) / (2 * w + b - h)) - Z_c, 0.001)[0]
 
-    if h <= 0:
-        h = fsolve(lambda h: epsilon_factor * ((b - 3 * h) / (2 * w + b - 3 * h)) - Z_c, 0.001)[0]
-        formula_used = 2
-    else:
-        formula_used = 1
+    def solve_for_h(initial_guess):
+        return fsolve(lambda h: epsilon_factor * ((b - 3 * h) / (2 * w + b - h)) - Z_c, initial_guess)[0]
+
+    def find_valid_h(initial_guess):
+        h = solve_for_h(initial_guess)
+        if 0 < h < 1:
+            return h, 1
+
+        h = fsolve(lambda h: epsilon_factor * ((b - 3 * h) / (2 * w + b - 3 * h)) - Z_c, initial_guess)[0]
+        if 0 < h < 1:
+            return h, 2
+
+        return None, None
+
+    initial_guess = 0.1
+    h, formula_used = None, None
+    while initial_guess >= 1e-10:
+        h, formula_used = find_valid_h(initial_guess)
+        if h:
+            break
+        initial_guess /= 10
+
+    if not h:
+        raise ValueError("Не удалось найти подходящее h в пределах [0, 1]")
 
     print(f"h: {h} м")
     print(f"Использованная формула для вычисления h: {formula_used}")
-
 
     a_pr = (4.34 * math.sqrt(math.pi * f * mu_0)) / (Z_c * (w + h) * math.sqrt(sigma))
     a_d = (27.3 * math.sqrt(epsilon) * tgdelta * f) / c
@@ -144,28 +168,38 @@ def calculate_microstrip_line(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
     h = 0.1 * b
     print(f"Начальные значения: b = {b}, h = {h}")
 
-
     epsilon_ef = 0.475 * epsilon + 0.67
     print(f"Эффективная диэлектрическая проницаемость epsilon_ef: {epsilon_ef}")
 
+    def solve_for_w(initial_guess):
+        eq1 = lambda w: (300 / math.sqrt(epsilon_ef) * ((1-h/b)/(1+w/b))) - Z_c
+        return fsolve(eq1, initial_guess)[0]
 
-    def eq1(w):
-        return 300 / math.sqrt(epsilon_ef) - Z_c * (1 + w / b - h / b) - (1 - h / b)
+    def find_valid_w(initial_guess):
+        w = solve_for_w(initial_guess)
+        if 0 < w < b:
+            return w, 1
 
-    w = fsolve(eq1, 0.001)[0]
+        eq2 = lambda w: (300 / math.sqrt(epsilon_ef) * ((1-h/b)/(1+w/b-h/b))) - Z_c
+        w = fsolve(eq2, initial_guess)[0]
+        if 0 < w < b:
+            return w, 2
 
-    if w <= 0:
-        def eq2(w):
-            return 300 / math.sqrt(epsilon_ef) - Z_c * (1 + w / b) - (1 - h / b)
+        return None, None
 
-        w = fsolve(eq2, 0.001)[0]
-        formula_used = 2
-    else:
-        formula_used = 1
+    initial_guess = 0.1
+    w, formula_used = None, None
+    while initial_guess >= 1e-10:
+        w, formula_used = find_valid_w(initial_guess)
+        if w:
+            break
+        initial_guess /= 10
+
+    if not w:
+        raise ValueError("Не удалось найти подходящее w в пределах [0, b]")
 
     print(f"Ширина w: {w} м")
     print(f"Использованная формула для вычисления w: {formula_used}")
-
 
     a_pr = (4.34 * math.sqrt(math.pi * f * mu_0)) / (Z_c * (w + h) * math.sqrt(sigma))
     a_d = (27.3 * f / c) * tgdelta * ((epsilon_ef - 1) / math.sqrt(epsilon_ef)) * (epsilon / (epsilon - 1))
@@ -173,7 +207,6 @@ def calculate_microstrip_line(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
     print(f"Коэффициент затухания из-за проводников a_pr: {a_pr} Нп/м")
     print(f"Коэффициент затухания из-за диэлектрика a_d: {a_d} Нп/м")
     print(f"Общий коэффициент затухания a_obsh: {a_obsh} Нп/м")
-
 
     A_e = 10**(a_obsh * l / 20)
     A_p = 10**(a_obsh * l / 10)
