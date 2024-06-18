@@ -19,16 +19,21 @@ def solve_task4():
     sigma=float(input("Введите Сигму "))
     prymoy(a,f,k_sh,sigma)
     krugliy(a,f,k_sh,sigma)
-def prymoy(a,f,k_sh,sigma):
 
+
+def prymoy(a, f, k_sh, sigma):
+    c = 3 * 10 ** 8  # Скорость света в вакууме
+    mu_0 = 4 * math.pi * 10 ** -7  # Магнитная проницаемость вакуума
+    E_prob = 1  # Примерное значение напряженности электрического поля, можете изменить при необходимости
 
     b = a / 2.1
     f_min = c / (2 * a)
     f_max = c / a
 
     band_width_min = 1.25 * c / (2 * a)
-    band_width_max = 1.98 * c / (2* a)
-    if f >= f_min and f <= f_max:
+    band_width_max = 1.98 * c / (2 * a)
+
+    if band_width_min <= f <= band_width_max:
         print("Частота входит в диапазон рабочих частот.")
     else:
         a_optimal = (0.63 * c) / f
@@ -38,29 +43,34 @@ def prymoy(a,f,k_sh,sigma):
         f_max_after = c / a_optimal
         band_width_min_after = 1.25 * c / (2 * a_optimal)
         band_width_max_after = 1.98 * c / (2 * a_optimal)
-        b_optimal=a_optimal/2.1
+        b_optimal = a_optimal / 2.1
 
-    f_cr = band_width_min if band_width_min_after==0 else band_width_min_after
-    aperture = (1 - (f_cr / f)**2)**0.5
+    if 'band_width_min_after' in locals():
+        f_cr = band_width_min_after
+    else:
+        f_cr = band_width_min
+
+    aperture = (1 - (f_cr / f) ** 2) ** 0.5
 
     vg = c * aperture
-
     vp = c / aperture
-
     beta = aperture * 2 * math.pi * f / c
-
     wavelength = c / f
-
     lambda_v = wavelength / aperture
     Z_v = 120 * math.pi / aperture
     delta = 1 / math.sqrt((math.pi * f * sigma * mu_0))
     k = 2 * math.pi / wavelength
-    a_pr = ((k_sh * k * delta) / b_optimal) * ((1 / aperture) * ((1 / 2) + b_optimal/a_optimal * (f_cr**2/f**2)))
-    P = ((a_optimal * b_optimal) / 4) * (aperture / Z_v) * E_prob**2
+    if 'a_optimal' in locals():
+        a_pr = ((k_sh * k * delta) / b_optimal) * (
+                    (1 / aperture) * ((1 / 2) + b_optimal / a_optimal * (f_cr ** 2 / f ** 2)))
+        P = ((a_optimal * b_optimal) / 4) * (aperture / Z_v) * E_prob ** 2
+    else:
+        a_pr = ((k_sh * k * delta) / b) * ((1 / aperture) * ((1 / 2) + b / a * (f_cr ** 2 / f ** 2)))
+        P = ((a * b) / 4) * (aperture / Z_v) * E_prob ** 2
 
     print("Прямоугольный волновод")
-    print("a:", a_optimal)
-    print("b:", b_optimal)
+    print("a:", a_optimal if 'a_optimal' in locals() else a)
+    print("b:", b_optimal if 'b_optimal' in locals() else b)
     print("Левый диапазон частот одномодового режима:", f_min)
     print("Правый диапазон частот одномодового режима:", f_max)
     print("Левый диапазон частот одномодового режима оптимального волновода:", f_min_after)
@@ -81,26 +91,28 @@ def prymoy(a,f,k_sh,sigma):
     print("Волновое число:", k)
     print("Коэффициент затухания волны типа H10:", a_pr)
     print("Предельная мощность:", P)
-def krugliy(a,f,k_sh,sigma):
-
+def krugliy(a, f, k_sh, sigma):
     b = a / 2.1
-    f_min = 8.8 * 10**7 /  a
-    f_max = 11.5* 10**7 /  a
-
-    band_width_min = 10 * 10**7 /  a
-    band_width_max = 11.4* 10**7 /  a
-    if f >= f_min and f <= f_max:
+    f_min = 8.8 * 10**7 / a
+    f_max = 11.5 * 10**7 / a
+    band_width_min = 10 * 10**7 / a
+    band_width_max = 11.4 * 10**7 / a
+    if band_width_min <= f <= band_width_max:
         print("Частота входит в диапазон рабочих частот.")
     else:
         a_optimal = (10 * 10**7) / f
         a_optimal2 = (11.4 * 10**7) / f
         a_optimal = (a_optimal + a_optimal2) / 2
-        f_min_after = 8.8 * 10**7 /  a_optimal
-        f_max_after = 11.5* 10**7 /  a_optimal
+        f_min_after = 8.8 * 10**7 / a_optimal
+        f_max_after = 11.5 * 10**7 / a_optimal
         band_width_min_after = 10 * 10**7 / a_optimal
         band_width_max_after = 11.4 * 10**7 / a_optimal
-        b_optimal=a_optimal/2.1
-    f_cr = band_width_min if band_width_min_after==0 else band_width_min_after
+        b_optimal = a_optimal / 2.1
+    if 'band_width_min_after' in locals():
+        f_cr = band_width_min_after
+    else:
+        f_cr = band_width_min
+
     aperture = math.sqrt(1 - (f_cr / f)**2)
 
     vg = c * aperture
@@ -115,9 +127,12 @@ def krugliy(a,f,k_sh,sigma):
     Z_v = 120 * math.pi / aperture
     delta = 1 / math.sqrt((math.pi * f * sigma * mu_0))
     k = 2 * math.pi / wavelength
-    a_pr = ((k_sh * k * delta) / (2 * a_optimal * aperture)) * ((f_cr/f)**2 - (1 / (1.841**2 - 1)))
-    P = 1.99 * 10**(-3) * a_optimal**2 * aperture * (120*math.pi / Z_v) * E_prob**2
+    if 'a_optimal' in locals():
+        a_pr = ((k_sh * k * delta) / (2 * a_optimal * aperture)) * ((f_cr/f)**2 - (1 / (1.841**2 - 1)))
+    else:
+        a_pr = ((k_sh * k * delta) / (2 * a * aperture)) * ((f_cr/f)**2 - (1 / (1.841**2 - 1)))
 
+    P = 1.99 * 10**(-3) * (a_optimal if 'a_optimal' in locals() else a)**2 * aperture * (120 * math.pi / Z_v) * E_prob**2
 
     E_roots = np.array([
         [2.405, 3.832, 5.136, 6.380],
@@ -147,8 +162,8 @@ def krugliy(a,f,k_sh,sigma):
     H_propagating_modes = find_propagating_modes(H_roots, 'H')
 
     print("Круглый волновод")
-    print("a:", a_optimal)
-    print("b:", b_optimal)
+    print("a:", a_optimal if 'a_optimal' in locals() else a)
+    print("b:", b_optimal if 'b_optimal' in locals() else b)
     print("Левый диапазон частот одномодового режима:", f_min)
     print("Правый диапазон частот одномодового режима:", f_max)
     print("Левый диапазон частот одномодового режима оптимального волновода:", f_min_after)
