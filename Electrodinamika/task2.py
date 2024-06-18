@@ -1,7 +1,6 @@
-from decimal import Decimal, getcontext
+
 import math
 def solve_task2():
-    getcontext().prec = 28
     f = float(input("Введите частоту в МГц: "))
     mu = float(input("Введите мю: "))
     sigma = float(input("Введите сигма: "))
@@ -9,7 +8,7 @@ def solve_task2():
     z = float(input("Введите расстояние z в мм: "))
     m = float(input("Введите число m: "))
     freq = f * 10**6
-    z_m = z / 1000
+    z = z / 1000
 
     mu0 = 4 * math.pi * 10**(-7)
     epsilon0 = 8.85 * 10 ** (-12)
@@ -21,11 +20,11 @@ def solve_task2():
     Zv = math.sqrt((2 * math.pi * freq * mu * mu0) / sigma)
     delta = 1 / alpha
     jprm0= sigma * A
-    jprm = sigma * A * math.exp(-alpha * z_m)
+    jprm = sigma * A * math.exp(-alpha * z)
     jcmm0 = epsilon0 * 1 * A * 2 * math.pi * freq
     jcmm = epsilon0 * 1 * A * math.exp(-alpha * z) * 2 * math.pi * freq
     P0= (A)**2 / (2 * Zv)
-    PZ = (A * Decimal(math.exp(-alpha * z))) ** 2 / (Decimal(2) * Zv)
+    PZ = (A * math.exp(-alpha * z))**2 / (2 * Zv)
     z1 = math.log(m) / alpha
 
     print("Вычисления для задачи 2:")

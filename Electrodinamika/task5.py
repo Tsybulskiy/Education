@@ -164,8 +164,8 @@ def calculate_symmetrical_stripline(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
 
     return a_obsh, A_e, A_p
 def calculate_microstrip_line(Z_c, epsilon, tgdelta, d_max, l, f, sigma):
-    b = d_max / 1.1
-    h = 0.1 * b
+    b = d_max / 1.5
+    h = d_max-b
     print(f"Начальные значения: b = {b}, h = {h}")
 
     epsilon_ef = 0.475 * epsilon + 0.67
